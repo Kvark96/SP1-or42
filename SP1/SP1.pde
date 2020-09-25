@@ -26,11 +26,13 @@ void setup()
 void keyReleased()
 {
   game.onKeyReleased(key);
+  game.onKeyReleased2(keyCode);
 }
 
 void keyPressed()
 {
   game.onKeyPressed(key);
+  game.onKeyPressed2(keyCode);
 }
 
 void draw()
@@ -61,20 +63,25 @@ void draw()
       else if(board[x][y] == 3)
       {
         fill(0,255,0);
+      } 
+      else if(board[x][y] == 4)
+      {
+        fill(0, 255, 255);
       }
       stroke(100,100,100);
       rect(x*40, y*40, 40, 40);
     }
   }
   fill(255);
-  text("Lifes: "+game.getPlayerLife(), 25,25);
+  text("Player 1 life: "+game.getPlayerLife(), 25,25);
+  text("Player 2 life: "+game.getPlayer2Life(), width-135, 25);
 }
 
 /*
-  Der skal tilføjes mad som er grønt. Maden er levende og skal bevæge sig rundt ligesome fjenderne, men i stedet for at løbe mod spillere, skal de løbe væk fra dem.
-  Hver gang du rammer et felt med mad på får du mere liv (playerLife) - dog aldrig mere end max (lav en variable til dette). Herefter forsvinder maden.
+  DONE : Der skal tilføjes mad som er grønt. Maden er levende og skal bevæge sig rundt ligesome fjenderne, men i stedet for at løbe mod spillere, skal de løbe væk fra dem.
+  DONE : Hver gang du rammer et felt med mad på får du mere liv (playerLife) - dog aldrig mere end max (lav en variable til dette). Herefter forsvinder maden.
   Du skal lave endnu en spiller som er en anden farve end den første, men ikke samme som fjender og mad. Den nye spiller skal styres med piletasterne.
-  Når en espiller har mindre end 1 playerLife tilbage, forsvinder den. Den sidste spiller der er tilbage vinder spillet.
+  Når en spiller har mindre end 1 playerLife tilbage, forsvinder den. Den sidste spiller der er tilbage vinder spillet.
   
   Aflevering: 
     Upload jeres færdige projekt til github og aflevér linket på moodle inden torsdag den 1. Okt. kl 18.00.

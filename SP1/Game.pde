@@ -9,14 +9,15 @@ class Game
   private Keys keys;
   private Keys2 keys2;
   private int playerLife;
-  private int player2Life;
-  private Dot player;
+  private int player2Life; // This is a fairly messy way of doing things. Creating Player and Enemy classes that inherit Dot would be easier,
+  private Dot player;      // but since you've set the precedent by doing it through Game, I will follow through.
   private Dot player2;
   private Dot[] enemies;
   // Food array and maxLife
   private int lifeFromFood = 10;
   private Dot[] food;
   private int maxLife = 100;
+  private boolean gameOver = false;
 
 
   Game(int width, int height, int numberOfEnemies, int numberOfFood)
@@ -68,7 +69,7 @@ class Game
   {
     return playerLife;
   }
-  public int getPlayer2Life(){
+  public int getPlayer2Life() {
     return player2Life;
   }
 
@@ -76,7 +77,7 @@ class Game
   {
     keys.onKeyPressed(ch);
   }
-  public void onKeyPressed2(int n){
+  public void onKeyPressed2(int n) {
     keys2.onKeyPressed(n);
   }
 
@@ -84,12 +85,12 @@ class Game
   {
     keys.onKeyReleased(ch);
   }
-  public void onKeyReleased2(int n){
+  public void onKeyReleased2(int n) {
     keys2.onKeyReleased(n);
   }
 
   public void update()
-  {
+  { 
     updatePlayer();
     updatePlayer2();
     updateEnemies();
@@ -98,7 +99,11 @@ class Game
     clearBoard();
     populateBoard();
   }
-
+  
+  // Can be called to check whether the game is over. The name is self-explanatory.
+  public boolean isGameOver(){
+    return gameOver;
+  }
 
 
   public int[][] getBoard()
@@ -138,7 +143,7 @@ class Game
       player.moveRight();
     }
   }
-  
+
   private void updatePlayer2()
   {
     //Update player
@@ -169,8 +174,13 @@ class Game
       if (rnd.nextInt(3) < 2)
       {
         //We follow
-        int dx = player.getX() - enemies[i].getX();
-        int dy = player.getY() - enemies[i].getY();
+        // NOTE: I have changed this so that it determines which player is closest, and chases them
+        //       This does result in a problem where the enemies won't move if both players are (nearly) equally close to them,
+        //       but I'm pretty sure this is unavoidable in a simple game like this.
+        //       Also, enemies will follow player2 from start, since they are closer when spawning, but this is unimportant.
+        int dx = abs(player.getX() - enemies[i].getX()) < abs(player2.getX() - enemies[i].getX()) ? player.getX() - enemies[i].getX() : player2.getX() - enemies[i].getX();
+        int dy = abs(player.getY() - enemies[i].getY()) < abs(player2.getY() - enemies[i].getY()) ? player.getY() - enemies[i].getY() : player2.getY() - enemies[i].getY();
+
         if (abs(dx) > abs(dy))
         {
           if (dx > 0)
@@ -219,8 +229,10 @@ class Game
     for (int i = 0; i < food.length; i++) {
       if (rnd.nextInt(3) < 2) {
         //We follow
-        int dx = player.getX() - food[i].getX();
-        int dy = player.getY() - food[i].getY();
+        //As before, the food will run from the player closest to them
+        //NOTE: dx and dy can be from different players (ie. dy could be closer for player1, while dx is closer for player2)
+        int dx = abs(player.getX() - food[i].getX()) < abs(player2.getX() - food[i].getX()) ? player.getX() - food[i].getX() : player2.getX() - food[i].getX();
+        int dy = abs(player.getY() - food[i].getY()) < abs(player2.getX() - food[i].getX()) ? player.getY() - food[i].getY() : player2.getX() - food[i].getX();
         if (abs(dx) > abs(dy))
         {
           if (dx > 0)
@@ -266,65 +278,75 @@ class Game
   }
 
 
-private void populateBoard()
-{
-  //Insert players
-  board[player.getX()][player.getY()] = 1;
-  board[player2.getX()][player2.getY()] = 4;
-  //Insert enemies
-  for (int i = 0; i < enemies.length; ++i)
+  private void populateBoard()
   {
-    board[enemies[i].getX()][enemies[i].getY()] = 2;
-  }
-  //Insert food
-  for (int i = 0; i < food.length; i++) {
-    board[food[i].getX()][food[i].getY()] = 3;
-  }
-}
-
-private void checkForCollisions()
-{
-  //Check enemy collisions
-  for (int i = 0; i < enemies.length; ++i)
-  {
-    if (enemies[i].getX() == player.getX() && enemies[i].getY() == player.getY())
+    //Insert players
+    board[player.getX()][player.getY()] = 1;
+    board[player2.getX()][player2.getY()] = 4;
+    //Insert enemies
+    for (int i = 0; i < enemies.length; ++i)
     {
-      //We have a collision
-      --playerLife;
-    } else if(enemies[i].getX() == player2.getX() && enemies[i].getY() == player2.getY())
-    {
-      //We have a player2 collision
-      --player2Life;
+      board[enemies[i].getX()][enemies[i].getY()] = 2;
+    }
+    //Insert food
+    for (int i = 0; i < food.length; i++) {
+      board[food[i].getX()][food[i].getY()] = 3;
     }
   }
-  //Check food collisions
-  for (int i = 0; i < food.length; ++i) {
-    if (food[i].getX() == player.getX() && food[i].getY() == player.getY())
+
+  private void checkForCollisions()
+  {
+    //Check enemy collisions
+    for (int i = 0; i < enemies.length; ++i)
     {
-      //We have a collision
-      //Add 10 to playerLife unless this extends beyond maxLife
-      if (playerLife < maxLife) {
-        if (maxLife - playerLife >= lifeFromFood) {
-          playerLife += lifeFromFood;
-        } else {
-          playerLife = maxLife;
-        }
+      if (enemies[i].getX() == player.getX() && enemies[i].getY() == player.getY())
+      {
+        //We have a collision
+        --playerLife;
+        // Game is over if player runs out of life
+        gameOver = playerLife <= 0;
+      } else if (enemies[i].getX() == player2.getX() && enemies[i].getY() == player2.getY())
+      {
+        //We have a player2 collision
+        --player2Life;
+        // Game is over if player 2 runs out of life
+        gameOver = player2Life <= 0;
       }
-      // Move the food to a new random location on the board.
-      food[i].x = rnd.nextInt(width);
-      food[i].y = rnd.nextInt(height);
-    } else if(food[i].getX() == player2.getX() && food[i].getY() == player.getY())
+    }
+    //Check food collisions
+    // NOTE: Food collisions are a bit glitchy at times, but I would argue the same is true for enemies.
+    //       I am not entirely sure what is causing the problem. I suspect it may have something to do with
+    //       the order of the methods being called, but that is just a hunch.
+    //       Could also be the fact that the game is running at 10 FPS.
+    for (int i = 0; i < food.length; ++i) {
+      if (food[i].getX() == player.getX() && food[i].getY() == player.getY())
+      {
+        //We have a collision
+        //Add 10 to playerLife unless this extends beyond maxLife
+        if (playerLife < maxLife) {
+          if (maxLife - playerLife >= lifeFromFood) {
+            playerLife += lifeFromFood;
+          } else {
+            playerLife = maxLife;
+          }
+        }
+        // Move the food to a new random location on the board.
+        food[i].x = rnd.nextInt(width);
+        food[i].y = rnd.nextInt(height);
+      } else if (food[i].getX() == player2.getX() && food[i].getY() == player2.getY())
       {
         // We have a player 2 collision
         // Same procedure as above
-        if(player2Life < maxLife){
-          if(maxLife - player2Life >= lifeFromFood){
+        if (player2Life < maxLife) {
+          if (maxLife - player2Life >= lifeFromFood) {
             player2Life += lifeFromFood;
           } else {
             player2Life = maxLife;
           }
         }
+        food[i].x = rnd.nextInt(width);
+        food[i].y = rnd.nextInt(height);
       }
+    }
   }
-}
 }

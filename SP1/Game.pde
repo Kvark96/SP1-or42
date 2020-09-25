@@ -10,9 +10,13 @@ class Game
   private int playerLife;
   private Dot player;
   private Dot[] enemies;
+  // Food array and maxLife
+  private int numberOfFood;
+  private Dot[] food;
+  private int maxLife = 100;
   
    
-  Game(int width, int height, int numberOfEnemies)
+  Game(int width, int height, int numberOfEnemies, int numberOfFood)
   {
     if(width < 10 || height < 10)
     {
@@ -21,7 +25,10 @@ class Game
     if(numberOfEnemies < 0)
     {
       throw new IllegalArgumentException("Number of enemies must be positive");
-    } 
+    }
+    if(numberOfFood < 0){
+      throw new IllegalArgumentException("There must be food");
+    }
     this.rnd = new Random();
     this.board = new int[width][height];
     this.width = width;
@@ -33,7 +40,13 @@ class Game
     {
       enemies[i] = new Dot(width-1, height-1, width-1, height-1);
     }
-    this.playerLife = 100;
+    // Assigns value to numberOfFood and initiates food array
+    this.numberOfFood = numberOfFood;
+    this.playerLife = maxLife;
+    food = new Dot[numberOfFood];
+    for(int i = 0; i < numberOfFood; i++){
+      food[i] = new Dot(rnd.nextInt(width),rnd.nextInt(height),width-1,height-1);
+    }
   }
   
   public int getWidth()
@@ -181,6 +194,10 @@ class Game
     {
       board[enemies[i].getX()][enemies[i].getY()] = 2;
     }
+    //Insert food
+    for(int i = 0; i < food.length; i++){
+      board[food[i].getX()][food[i].getY()] = 3;
+    }
   }
    
   private void checkForCollisions()
@@ -193,6 +210,24 @@ class Game
         //We have a collision
         --playerLife;
       }
+    }
+    //Check food collisions
+    for(int i = 0; i < food.length; ++i){
+      if(food[i].getX() == player.getX() && food[i].getY() == player.getY())
+    {
+      //We have a collision
+      //Add 10 to playerLife unless this extends beyond maxLife
+      if(playerLife < maxLife){
+        if(maxLife - playerLife >= 10){
+          playerLife += 10;
+        } else {
+          playerLife = maxLife;
+        }
+      }
+      // Move the food to a new random location on the board.
+      food[i].x = rnd.nextInt(width);
+      food[i].y = rnd.nextInt(height);
+    }
     }
   }
 }
